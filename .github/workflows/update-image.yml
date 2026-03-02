@@ -247,8 +247,14 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add lzc-manifest.yml
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
           git commit -m "Update ${{ env.PROJECT_NAME }} to version ${{ steps.get-version.outputs.latest_version }}"
-          
+
           mkdir -p ~/.ssh
           echo "$DEPLOY_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
