@@ -7,7 +7,7 @@ on:
       force_build:
         description: 'Force build even if no new version'
         required: false
-        default: 'false'
+        default: false
         type: boolean
   # 定时检查，每6小时一次
   schedule:
