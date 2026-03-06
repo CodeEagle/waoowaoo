@@ -86,8 +86,7 @@ services:
     depends_on:
       - mysql
       - redis
-    command: >
-      sh -c "mkdir -p /app/data/uploads /app/logs && chown -R node:node /app/data /app/logs && sleep 10 && npx prisma db push --skip-generate && npm run start"
+    command: "/sbin/tini -- sh -c 'sleep 10 && npx prisma db push --skip-generate && npm run start'"
 
 locales:
   en:
