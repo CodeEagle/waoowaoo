@@ -90,6 +90,26 @@ services:
       mkdir -p /app/data/uploads
       mkdir -p /app/logs
       chown -R node:node /app/data /app/logs
+      # 等待 MySQL 就绪
+      echo "Waiting for MySQL to be ready..."
+      for i in $(seq 1 60); do
+        if nc -z mysql 3306 2>/dev/null; then
+          echo "MySQL is ready!"
+          break
+        fi
+        echo "Waiting for MySQL... ($i/60)"
+        sleep 2
+      done
+      # 等待 Redis 就绪
+      echo "Waiting for Redis to be ready..."
+      for i in $(seq 1 30); do
+        if nc -z redis 6379 2>/dev/null; then
+          echo "Redis is ready!"
+          break
+        fi
+        echo "Waiting for Redis... ($i/30)"
+        sleep 1
+      done
 
 locales:
   en:
