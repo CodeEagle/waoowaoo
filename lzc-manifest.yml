@@ -86,7 +86,7 @@ services:
     depends_on:
       - mysql
       - redis
-    command: "/sbin/tini -- sh -c 'sleep 10 && npx prisma db push --skip-generate && npm run start'"
+    command: "/sbin/tini -- sh -c 'for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do mysqladmin ping -h mysql -uroot -pwaoowaoo123 2>/dev/null && echo MySQL is ready && break; sleep 3; done && npx prisma db push --skip-generate && npm run start'"
 
 locales:
   en:
