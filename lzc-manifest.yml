@@ -17,7 +17,7 @@ application:
 services:
   # MySQL 数据库
   mysql:
-    image: registry.lazycat.cloud/library/mysql:8.0
+    image: registry.lazycat.cloud/invokerlaw/library/mysql:dce173d8b2ebda34
     environment:
       - MYSQL_ROOT_PASSWORD=waoowaoo123
       - MYSQL_DATABASE=waoowaoo
@@ -28,7 +28,7 @@ services:
 
   # Redis 缓存/队列
   redis:
-    image: registry.lazycat.cloud/library/redis:7-alpine
+    image: registry.lazycat.cloud/invokerlaw/library/redis:160a706bce934011
     environment: []
     binds:
       - /lzcapp/var/db/redis:/data
