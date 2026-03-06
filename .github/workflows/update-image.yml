@@ -78,9 +78,13 @@ jobs:
                   if [ -n "$CHANGELOG_CONTENT" ]; then
                     echo "Found $changelog_file, parsing version..."
                     # 匹配常见版本格式: ## [v1.0.0], ## [v1.0], ## v1.0.0, ## 1.0.0
-                    # 支持 X.Y 和 X.Y.Z 两种格式
-                    CHANGELOG_VERSION=$(echo "$CHANGELOG_CONTENT" | grep -m1 -oP '(?<=##\s\[?v?)\d+\.\d+(?:\.\d+)?[^\]\s]*' | head -1 || echo "")
+                    # 支持 X.Y 和 X.Y.Z 两种格式，统一转为 X.Y.Z
+                    CHANGELOG_VERSION=$(echo "$CHANGELOG_CONTENT" | grep -m1 -oP '(?<=##\s\[?v?)\d+\.\d+(?:\.\d+)?' | head -1 || echo "")
                     if [ -n "$CHANGELOG_VERSION" ]; then
+                      # 如果只有 X.Y，补全为 X.Y.0
+                      if [[ ! "$CHANGELOG_VERSION" =~ ^\d+\.\d+\.\d+$ ]]; then
+                        CHANGELOG_VERSION="${CHANGELOG_VERSION}.0"
+                      fi
                       echo "Parsed version from $changelog_file: $CHANGELOG_VERSION"
                       break
                     fi
