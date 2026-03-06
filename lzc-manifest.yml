@@ -25,9 +25,6 @@ services:
     binds:
       - /lzcapp/var/db/mysql:/var/lib/mysql
     command: "--default-authentication-plugin=mysql_native_password --sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
-    setup_script: |
-      mkdir -p /var/lib/mysql
-      chown -R mysql:mysql /var/lib/mysql
 
   # Redis 缓存/队列
   redis:
@@ -36,9 +33,6 @@ services:
     binds:
       - /lzcapp/var/db/redis:/data
     command: "redis-server --appendonly yes"
-    setup_script: |
-      mkdir -p /data
-      chown -R redis:redis /data
 
   # Next.js 应用
   waoowaoo:
