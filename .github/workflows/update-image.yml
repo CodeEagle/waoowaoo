@@ -81,9 +81,10 @@ jobs:
                   echo "Found $changelog_file, parsing version..."
                   CHANGELOG_CONTENT=$(echo "$CHANGELOG_RESPONSE" | jq -r '.content' | base64 -d 2>/dev/null || true)
                   if [ -n "$CHANGELOG_CONTENT" ]; then
-                    CHANGELOG_VERSION=$(echo "$CHANGELOG_CONTENT" | grep -m1 -oP '(?<=##\s\[?v?)\d+\.\d+(?:\.\d+)?' | head -1 || true)
+                    # 匹配: ## [v0.2], ## [v0.2.0], ## v0.2, ## 0.2.0
+                    CHANGELOG_VERSION=$(echo "$CHANGELOG_CONTENT" | grep -m1 -E '^##\s+\[?v?[0-9]+\.[0-9]+' | sed -E 's/^##\s+\[?v?([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/' | head -1 || true)
                     if [ -n "$CHANGELOG_VERSION" ]; then
-                      if [[ ! "$CHANGELOG_VERSION" =~ ^\d+\.\d+\.\d+$ ]]; then
+                      if [[ ! "$CHANGELOG_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
                         CHANGELOG_VERSION="${CHANGELOG_VERSION}.0"
                       fi
                       LATEST_VERSION="$CHANGELOG_VERSION"
