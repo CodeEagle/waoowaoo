@@ -77,12 +77,9 @@ jobs:
                   CHANGELOG_CONTENT=$(gh api "repos/${{ env.UPSTREAM_REPO }}/contents/$changelog_file" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
                   if [ -n "$CHANGELOG_CONTENT" ]; then
                     echo "Found $changelog_file, parsing version..."
-                    # 匹配常见版本格式: ## [1.0.0], ## 1.0.0, ## v1.0.0, # 1.0.0
-                    CHANGELOG_VERSION=$(echo "$CHANGELOG_CONTENT" | grep -m1 -oP '(?<=##\s\[?v?)\d+\.\d+\.\d+[^\]\s]*' | head -1 || echo "")
-                    if [ -z "$CHANGELOG_VERSION" ]; then
-                      # 尝试另一种格式: [1.0.0] 或 version 1.0.0
-                      CHANGELOG_VERSION=$(echo "$CHANGELOG_CONTENT" | grep -m1 -oP '(?:version\s+)?v?\d+\.\d+\.\d+' | head -1 | sed 's/^v//' || echo "")
-                    fi
+                    # 匹配常见版本格式: ## [v1.0.0], ## [v1.0], ## v1.0.0, ## 1.0.0
+                    # 支持 X.Y 和 X.Y.Z 两种格式
+                    CHANGELOG_VERSION=$(echo "$CHANGELOG_CONTENT" | grep -m1 -oP '(?<=##\s\[?v?)\d+\.\d+(?:\.\d+)?[^\]\s]*' | head -1 || echo "")
                     if [ -n "$CHANGELOG_VERSION" ]; then
                       echo "Parsed version from $changelog_file: $CHANGELOG_VERSION"
                       break
