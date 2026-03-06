@@ -24,9 +24,7 @@ services:
       - MYSQL_ROOT_HOST=%
     binds:
       - /lzcapp/var/db/mysql:/var/lib/mysql
-    command:
-      - "--default-authentication-plugin=mysql_native_password"
-      - "--sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+    command: "--default-authentication-plugin=mysql_native_password --sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
     setup_script: |
       mkdir -p /var/lib/mysql
       chown -R mysql:mysql /var/lib/mysql
@@ -37,7 +35,7 @@ services:
     environment: []
     binds:
       - /lzcapp/var/db/redis:/data
-    command: ["redis-server", "--appendonly", "yes"]
+    command: "redis-server --appendonly yes"
     setup_script: |
       mkdir -p /data
       chown -R redis:redis /data
