@@ -13,7 +13,7 @@ application:
     - /
   upstreams:
     - location: /
-      backend: http://app:3000/
+      backend: http://waoowaoo:3000/
 services:
   # MySQL 数据库
   mysql:
@@ -41,7 +41,7 @@ services:
       chown -R redis:redis /data
 
   # Next.js 应用
-  app:
+  waoowaoo:
     image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:448850ae481cecf2
     environment:
       # 数据库配置
