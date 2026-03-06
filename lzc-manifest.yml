@@ -86,12 +86,8 @@ services:
     depends_on:
       - mysql
       - redis
-    setup_script: |
-      mkdir -p /app/data/uploads
-      mkdir -p /app/logs
-      chown -R node:node /app/data /app/logs
     command: >
-      sh -c "sleep 10 && npx prisma db push --skip-generate && npm run start"
+      sh -c "mkdir -p /app/data/uploads /app/logs && chown -R node:node /app/data /app/logs && sleep 10 && npx prisma db push --skip-generate && npm run start"
 
 locales:
   en:
