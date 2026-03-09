@@ -36,7 +36,7 @@ services:
 
   # Next.js 应用
   waoowaoo:
-    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:ad83684cda943a63
+    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:490041f29dc84cd8
     environment:
       # 数据库配置
       - DATABASE_URL=mysql://root:waoowaoo123@mysql:3306/waoowaoo
