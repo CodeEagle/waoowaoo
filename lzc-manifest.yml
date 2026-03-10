@@ -3,7 +3,7 @@ package: fun.selfstudio.app.migration.waoowaoo
 version: 0.3.0
 min_os_version: 1.3.8
 name: waoowaoo
-description: AI-powered short drama / comic video production platform
+description: AI-powered short drama and comic video production platform
 license: MIT
 homepage: https://github.com/waoowaooAI/waoowaoo
 author: waoowaoo-team
@@ -14,8 +14,9 @@ application:
   upstreams:
     - location: /
       backend: http://waoowaoo:3000/
+  health_check:
+    test_url: http://waoowaoo:3000/api/system/boot-id
 services:
-  # MySQL 数据库
   mysql:
     image: registry.lazycat.cloud/invokerlaw/library/mysql:dce173d8b2ebda34
     environment:
@@ -23,52 +24,61 @@ services:
       - MYSQL_DATABASE=waoowaoo
       - MYSQL_ROOT_HOST=%
     binds:
-      - /lzcapp/var/db/mysql:/var/lib/mysql
-    command: "--default-authentication-plugin=mysql_native_password --sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+      - /lzcapp/var/db/waoowaoo/mysql:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
 
-  # Redis 缓存/队列
   redis:
     image: registry.lazycat.cloud/invokerlaw/library/redis:160a706bce934011
-    environment: []
     binds:
-      - /lzcapp/var/db/redis:/data
-    command: "redis-server --appendonly yes"
+      - /lzcapp/var/data/waoowaoo/redis:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
-  # Next.js 应用
   waoowaoo:
-    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:e4859b91d83c206e
+    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:ea3b7ba07065b536
+    depends_on:
+      - mysql
+      - redis
     environment:
-      # 数据库配置
       - DATABASE_URL=mysql://root:waoowaoo123@mysql:3306/waoowaoo
-      # Redis 配置
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_USERNAME=
       - REDIS_PASSWORD=
       - REDIS_TLS=
-      # 存储配置
       - STORAGE_TYPE=local
-      # 认证配置 - 使用懒猫域名
       - NEXTAUTH_URL=https://${LAZYCAT_APP_DOMAIN}
-      - NEXTAUTH_SECRET=waoowaoo-default-secret-2026
-      # 内部密钥
-      - CRON_SECRET=waoowaoo-docker-cron-secret
-      - INTERNAL_TASK_TOKEN=waoowaoo-docker-task-token
-      - API_ENCRYPTION_KEY=waoowaoo-opensource-fixed-key-2026
-      # Worker 配置
+      - NEXTAUTH_SECRET=${LAZYCAT_APP_ID}-${LAZYCAT_BOX_DOMAIN}-nextauth
+      - CRON_SECRET=${LAZYCAT_APP_ID}-${LAZYCAT_BOX_DOMAIN}-cron
+      - INTERNAL_TASK_TOKEN=${LAZYCAT_APP_ID}-${LAZYCAT_BOX_DOMAIN}-task
+      - API_ENCRYPTION_KEY=${LAZYCAT_APP_ID}-${LAZYCAT_BOX_DOMAIN}-encrypt
       - WATCHDOG_INTERVAL_MS=30000
       - TASK_HEARTBEAT_TIMEOUT_MS=90000
       - QUEUE_CONCURRENCY_IMAGE=50
       - QUEUE_CONCURRENCY_VIDEO=50
       - QUEUE_CONCURRENCY_VOICE=20
       - QUEUE_CONCURRENCY_TEXT=50
-      # Bull Board
       - BULL_BOARD_HOST=0.0.0.0
       - BULL_BOARD_PORT=3010
       - BULL_BOARD_BASE_PATH=/admin/queues
       - BULL_BOARD_USER=
       - BULL_BOARD_PASSWORD=
-      # 日志配置
       - LOG_UNIFIED_ENABLED=true
       - LOG_LEVEL=INFO
       - LOG_FORMAT=json
@@ -76,22 +86,54 @@ services:
       - LOG_AUDIT_ENABLED=true
       - LOG_SERVICE=waoowaoo
       - LOG_REDACT_KEYS=password,token,apiKey,apikey,authorization,cookie,secret,access_token,refresh_token
-      # 计费模式
       - BILLING_MODE=OFF
-      # 流式配置
       - LLM_STREAM_EPHEMERAL_ENABLED=true
+      - NODE_ENV=production
     binds:
-      - /lzcapp/var/data:/app/data
-      - /lzcapp/var/logs:/app/logs
-    depends_on:
-      - mysql
-      - redis
-    command: "/sbin/tini -- sh -c 'for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do mysqladmin ping -h mysql -uroot -pwaoowaoo123 2>/dev/null && echo MySQL is ready && break; sleep 3; done && npx prisma db push --skip-generate && npm run start'"
+      - /lzcapp/var/data/waoowaoo:/app/data
+      - /lzcapp/var/log/waoowaoo:/app/logs
+    command: >-
+      sh -lc '
+      node -e "
+      const net = require(\"net\");
+      const waitTcp = (host, port) => new Promise((resolve, reject) => {
+        const socket = net.connect({ host, port }, () => { socket.end(); resolve(); });
+        socket.on(\"error\", reject);
+      });
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      (async () => {
+        for (let i = 0; i < 60; i += 1) {
+          try {
+            await waitTcp(\"mysql\", 3306);
+            await waitTcp(\"redis\", 6379);
+            return;
+          } catch (_) {
+            await sleep(2000);
+          }
+        }
+        process.exit(1);
+      })().catch(() => process.exit(1));
+      " &&
+      i=0;
+      until npx prisma db push --skip-generate; do
+        i=$$(($$i+1));
+        [ "$$i" -ge 30 ] && exit 1;
+        sleep 2;
+      done;
+      exec npm run start'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1:3000/api/system/boot-id >/dev/null || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
 
 locales:
   en:
     name: waoowaoo
-    description: AI-powered short drama / comic video production platform
+    description: AI-powered short drama and comic video production platform
   zh:
     name: waoowaoo
-    description: AI 影视 Studio - 短剧/漫画视频制作工具
+    description: AI 短剧与漫画视频制作平台
