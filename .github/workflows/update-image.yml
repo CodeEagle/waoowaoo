@@ -159,6 +159,23 @@ jobs:
           LZC_CLI_TOKEN: ${{ secrets.LZC_CLI_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          retry() {
+            local max_attempts="$1"
+            shift
+            local attempt=1
+            while true; do
+              if "$@"; then
+                return 0
+              fi
+              if [ "$attempt" -ge "$max_attempts" ]; then
+                return 1
+              fi
+              echo "Command failed (attempt $attempt/$max_attempts): $*"
+              attempt=$((attempt + 1))
+              sleep 10
+            done
+          }
+
           LATEST_VERSION="${{ steps.get-version.outputs.latest_version }}"
 
           cd upstream
@@ -169,10 +186,10 @@ jobs:
           echo "Building image: $LOCAL_IMAGE"
           docker build -t "$LOCAL_IMAGE" .
 
-          echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-          docker push "$LOCAL_IMAGE"
+          retry 3 sh -c 'echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin'
+          retry 4 docker push "$LOCAL_IMAGE"
 
-          COPY_OUTPUT=$(lzc-cli appstore copy-image "$LOCAL_IMAGE" 2>&1)
+          COPY_OUTPUT=$(retry 4 lzc-cli appstore copy-image "$LOCAL_IMAGE" 2>&1 || true)
           echo "$COPY_OUTPUT"
           ACCELERATED_URL=$(echo "$COPY_OUTPUT" | grep -oE 'registry\.lazycat\.cloud/[a-zA-Z0-9_/.:-]+' | head -1 || echo "")
 
