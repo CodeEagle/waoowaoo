@@ -41,13 +41,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          normalize_semver() {
+            local value="$1"
+            value="${value#v}"
+            printf '%s\n' "$value"
+          }
+
           TARGET_VERSION="${{ inputs.target_version }}"
           LATEST_VERSION=""
           RELEASE_NOTES=""
 
           if [ -n "$TARGET_VERSION" ]; then
             # 使用指定版本
-            LATEST_VERSION="$TARGET_VERSION"
+            LATEST_VERSION="$(normalize_semver "$TARGET_VERSION")"
             echo "Using specified version: $LATEST_VERSION"
           else
             # 1. 尝试获取最新 release
@@ -55,7 +61,7 @@ jobs:
             RELEASE_RESPONSE=$(gh api "repos/${{ env.UPSTREAM_REPO }}/releases/latest" 2>&1 || true)
             if echo "$RELEASE_RESPONSE" | jq -e '.tag_name' >/dev/null 2>&1; then
               RELEASE_TAG=$(echo "$RELEASE_RESPONSE" | jq -r '.tag_name')
-              LATEST_VERSION="${RELEASE_TAG#v}"
+              LATEST_VERSION="$(normalize_semver "$RELEASE_TAG")"
               RELEASE_NOTES=$(echo "$RELEASE_RESPONSE" | jq -r '.body // empty')
               echo "Found release version: $LATEST_VERSION"
             fi
@@ -66,7 +72,7 @@ jobs:
               TAGS_RESPONSE=$(gh api "repos/${{ env.UPSTREAM_REPO }}/tags?per_page=1" 2>&1 || true)
               if echo "$TAGS_RESPONSE" | jq -e '.[0].name' >/dev/null 2>&1; then
                 LATEST_TAG=$(echo "$TAGS_RESPONSE" | jq -r '.[0].name')
-                LATEST_VERSION="${LATEST_TAG#v}"
+                LATEST_VERSION="$(normalize_semver "$LATEST_TAG")"
                 RELEASE_NOTES="Build from tag $LATEST_TAG"
                 echo "Found tag version: $LATEST_VERSION"
               fi

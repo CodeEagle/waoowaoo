@@ -18,7 +18,7 @@ application:
     test_url: http://waoowaoo:3000/api/system/boot-id
 services:
   mysql:
-    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:4906a32204beab42
+    image: registry.lazycat.cloud/invokerlaw/library/mysql:dce173d8b2ebda34
     environment:
       - MYSQL_ROOT_PASSWORD=waoowaoo123
       - MYSQL_DATABASE=waoowaoo
