@@ -183,7 +183,25 @@ jobs:
           ACCELERATED_URL="${{ steps.build-image.outputs.accelerated_url }}"
           LATEST_VERSION="${{ steps.get-version.outputs.latest_version }}"
 
-          sed -i "s|image: registry.lazycat.cloud/.*waoowaoo.*|image: $ACCELERATED_URL|g" lzc-manifest.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          manifest_path = Path("lzc-manifest.yml")
+          content = manifest_path.read_text()
+          accelerated_url = os.environ["ACCELERATED_URL"]
+
+          pattern = re.compile(
+              r"(^  waoowaoo:\n(?:    .*\n)*?    image: )([^\n]+)",
+              re.MULTILINE,
+          )
+          updated, count = pattern.subn(r"\1" + accelerated_url, content, count=1)
+          if count != 1:
+              raise SystemExit("Failed to update services.waoowaoo.image in lzc-manifest.yml")
+
+          manifest_path.write_text(updated)
+          PY
           sed -i "s/^version:.*/version: $LATEST_VERSION/g" lzc-manifest.yml
 
           echo "Updated to version: $LATEST_VERSION"
