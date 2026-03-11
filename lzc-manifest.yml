@@ -115,10 +115,16 @@ services:
       })().catch(() => process.exit(1));
       " &&
       i=0;
-      until npx prisma db push --skip-generate; do
-        i=$$(($$i+1));
-        [ "$$i" -ge 30 ] && exit 1;
-        sleep 2;
+      while true; do
+        prisma_output=$$(npx prisma db push --skip-generate 2>&1) && break
+        echo "$$prisma_output"
+        echo "$$prisma_output" | grep -q "Duplicate foreign key constraint name" && {
+          echo "Detected duplicate FK metadata, continue startup"
+          break
+        }
+        i=$$(($$i+1))
+        [ "$$i" -ge 30 ] && exit 1
+        sleep 2
       done;
       exec npm run start'
     healthcheck:
