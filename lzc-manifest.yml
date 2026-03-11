@@ -18,7 +18,7 @@ application:
     test_url: http://waoowaoo:3000/api/system/boot-id
 services:
   mysql:
-    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:5c5dc1ac05cd383a
+    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:8ea6ecf52f79bec0
     environment:
       - MYSQL_ROOT_PASSWORD=waoowaoo123
       - MYSQL_DATABASE=waoowaoo
@@ -51,7 +51,7 @@ services:
       start_period: 10s
 
   waoowaoo:
-    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:5c5dc1ac05cd383a
+    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:8ea6ecf52f79bec0
     depends_on:
       - mysql
       - redis
