@@ -13,6 +13,7 @@
 - 增加 MySQL / Redis healthcheck，让 `depends_on` 真正等待依赖健康
 - 明确 `/app/data` 与 `/app/logs` 的持久化挂载
 - 将入口健康检查固定到 `/api/system/boot-id`
+- 拉长 MySQL / Redis / 应用自身的健康检查宽限期，避免首次安装时被过早判定失败
 
 ## 验收结果
 
