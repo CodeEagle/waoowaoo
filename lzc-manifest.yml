@@ -3,7 +3,7 @@ package: fun.selfstudio.app.migration.waoowaoo
 version: 0.3.1
 min_os_version: 1.3.8
 name: waoowaoo
-description: AI-powered short drama and comic video production platform
+description: (LazyCat Auto-build) AI-powered short drama and comic video production platform
 license: MIT
 homepage: https://github.com/waoowaooAI/waoowaoo
 author: waoowaoo-team
@@ -51,7 +51,7 @@ services:
       start_period: 30s
 
   waoowaoo:
-    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:ea3b7ba07065b536
+    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:1ce0dbccf69fef2b
     depends_on:
       - mysql
       - redis
