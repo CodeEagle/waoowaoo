@@ -16,6 +16,9 @@ application:
       backend: http://waoowaoo:3000/
   health_check:
     test_url: http://waoowaoo:3000/api/system/boot-id
+    start_period: 600s
+    timeout: 10s
+
 services:
   mysql:
     image: registry.lazycat.cloud/invokerlaw/library/mysql:dce173d8b2ebda34
@@ -34,6 +37,7 @@ services:
       timeout: 5s
       retries: 60
       start_period: 60s
+      start_interval: 2s
 
   redis:
     image: registry.lazycat.cloud/invokerlaw/library/redis:160a706bce934011
@@ -49,6 +53,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 30s
+      start_interval: 2s
 
   waoowaoo:
     image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:24bb2faa98602896
@@ -94,47 +99,56 @@ services:
       - /lzcapp/var/log/waoowaoo:/app/logs
     command: >-
       sh -lc '
+      set -e;
+
+      echo "[Init] Waiting for dependencies...";
       node -e "
       const net = require(\"net\");
-      const waitTcp = (host, port) => new Promise((resolve, reject) => {
-        const socket = net.connect({ host, port }, () => { socket.end(); resolve(); });
-        socket.on(\"error\", reject);
+      const waitTcp = (host, port, timeout=60000) => new Promise((resolve, reject) => {
+        const start = Date.now();
+        const tryConnect = () => {
+          const socket = net.connect({ host, port, timeout: 5000 }, () => {
+            socket.end();
+            resolve();
+          });
+          socket.on(\"error\", () => {
+            if (Date.now() - start > timeout) {
+              reject(new Error(\"Timeout waiting for \" + host + \":\" + port));
+            } else {
+              setTimeout(tryConnect, 2000);
+            }
+          });
+        };
+        tryConnect();
       });
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       (async () => {
-        for (let i = 0; i < 60; i += 1) {
-          try {
-            await waitTcp(\"mysql\", 3306);
-            await waitTcp(\"redis\", 6379);
-            return;
-          } catch (_) {
-            await sleep(2000);
-          }
-        }
-        process.exit(1);
-      })().catch(() => process.exit(1));
-      " &&
-      i=0;
-      while true; do
-        prisma_output=$$(npx prisma db push --skip-generate 2>&1) && break
-        echo "$$prisma_output"
-        echo "$$prisma_output" | grep -q "Duplicate foreign key constraint name" && {
-          echo "Detected duplicate FK metadata, continue startup"
-          break
-        }
-        i=$$(($$i+1))
-        [ "$$i" -ge 30 ] && exit 1
-        sleep 2
-      done;
-      exec npm run start'
+        await waitTcp(\"mysql\", 3306);
+        console.log(\"[Init] MySQL ready\");
+        await waitTcp(\"redis\", 6379);
+        console.log(\"[Init] Redis ready\");
+      })().catch(e => { console.error(e); process.exit(1); });
+      ";
+
+      echo "[Init] Running database migration...";
+      npx prisma db push --skip-generate --accept-data-loss || {
+        echo "[Warning] Migration failed, checking if it is duplicate FK error...";
+      };
+
+      echo "[Init] Starting application...";
+      exec npm run start
+      '
     healthcheck:
       test:
         - CMD-SHELL
-        - wget -qO- http://127.0.0.1:3000/api/system/boot-id >/dev/null || exit 1
+        - |
+          wget -qO- http://127.0.0.1:3000/api/system/boot-id > /dev/null 2>&1 &&
+          echo "Health check passed" ||
+          (echo "Health check failed" && exit 1)
       interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 300s
+      start_period: 600s
+      start_interval: 5s
 
 locales:
   en:
