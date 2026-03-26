@@ -56,7 +56,7 @@ services:
       start_interval: 2s
 
   waoowaoo:
-    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:a3e09a6a45fa5fc2
+    image: registry.lazycat.cloud/invokerlaw/codeeagle/waoowaoo:5957fe5152644a5f
     depends_on:
       - mysql
       - redis
